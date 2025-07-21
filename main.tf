@@ -33,3 +33,8 @@ module "load_balancer" {
   alb_sg_id         = module.security_groups.alb_sg_id
   vpc_id            = module.vpc.vpc_id
 }
+
+module "ingress" {
+  source    = "./modules/ingress"
+  namespace = "staging"   
+}
