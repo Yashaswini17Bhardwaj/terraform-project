@@ -52,8 +52,14 @@ variable "db_username" {
   default     = "admin"
 }
 
-variable "db_password" {
-  description = "Database password"
+# variable "db_password" {
+#   description = "Database password"
+#   type        = string
+#   sensitive   = true
+# }
+
+variable "db_password_secret_arn" {
+  description = "ARN of the Secrets Manager secret for DB password"
   type        = string
-  sensitive   = true
+  default     = "arn:aws:secretsmanager:ap-south-1:851614451567:secret:my-rds-password-YHIKgk"   
 }
