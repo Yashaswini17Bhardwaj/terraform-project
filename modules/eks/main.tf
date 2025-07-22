@@ -70,6 +70,11 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
   role       = aws_iam_role.eks_cluster.name
 }
 
+resource "aws_iam_role_policy_attachment" "eks_ssm_policy" { 
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  role       = aws_iam_role.eks_nodes.name
+}
+
 
 resource "aws_eks_addon" "aws_lb_controller" {
   cluster_name = aws_eks_cluster.main.name
