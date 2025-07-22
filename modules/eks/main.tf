@@ -166,3 +166,45 @@ resource "helm_release" "alb-controller" {
     value = var.eks_cluster_name
   }
 }
+
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = "monitoring"
+  }
+}
+
+resource "helm_release" "prometheus" {
+  name       = "prometheus"
+  repository = "https://prometheus-community.github.io/helm-charts"
+  chart      = "kube-prometheus-stack"  # Use kube-prometheus-stack for integrated Grafana
+  namespace  = "monitoring"
+
+  set {
+    name  = "prometheus.prometheusSpec.scrapeInterval"
+    value = "30s"
+  }
+
+  set {
+    name  = "grafana.enabled"
+    value = "true"
+  }
+
+  set {
+  name  = "grafana.service.type"
+  value = "LoadBalancer"
+  }
+
+  set {
+    name  = "nodeExporter.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "kubeStateMetrics.enabled"
+    value = "true"
+  }
+
+  depends_on = [kubernetes_namespace.monitoring]
+}
+
+
