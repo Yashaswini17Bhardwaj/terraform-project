@@ -5,6 +5,10 @@ resource "aws_eks_cluster" "main" {
   vpc_config {
     subnet_ids = var.private_subnet_ids
   }
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_policy,
+  ]
+  
 }
 
 resource "aws_iam_role" "eks_cluster" {
@@ -76,7 +80,89 @@ resource "aws_iam_role_policy_attachment" "eks_ssm_policy" {
 }
 
 
-resource "aws_eks_addon" "aws_lb_controller" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "aws-load-balancer-controller"
+# resource "aws_eks_addon" "aws_lb_controller" {
+#   cluster_name = aws_eks_cluster.main.name
+#   addon_name   = "aws-load-balancer-controller"
+# }
+
+data "tls_certificate" "cluster" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "cluster" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.cluster.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+module "lb_role" {
+  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+
+  role_name                              = "${var.eks_cluster_name}_eks_lb"
+  attach_load_balancer_controller_policy = true
+
+  oidc_providers = {
+    main = {
+      provider_arn               = aws_iam_openid_connect_provider.cluster.arn  # Use the created OIDC provider
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
+    }
+  }
+
+  depends_on = [aws_iam_openid_connect_provider.cluster]
+}
+
+
+resource "kubernetes_service_account" "service-account" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    labels = {
+      "app.kubernetes.io/name"      = "aws-load-balancer-controller"
+      "app.kubernetes.io/component" = "controller"
+    }
+    annotations = {
+      "eks.amazonaws.com/role-arn"               = module.lb_role.iam_role_arn
+      "eks.amazonaws.com/sts-regional-endpoints" = "true"
+    }
+  }
+
+  depends_on = [module.lb_role]
+}
+
+resource "helm_release" "alb-controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  depends_on = [kubernetes_service_account.service-account]
+
+  set {
+    name  = "region"
+    value = "ap-south-1"
+  }
+
+  set {
+    name  = "vpcId"
+    value = var.vpc_id
+  }
+
+  set {
+    name  = "image.repository"
+    value = "602401143452.dkr.ecr.ap-south-1.amazonaws.com/amazon/aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "clusterName"
+    value = var.eks_cluster_name
+  }
 }

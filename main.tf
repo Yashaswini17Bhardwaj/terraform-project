@@ -15,6 +15,7 @@ module "eks" {
   eks_cluster_name   = var.eks_cluster_name
   private_subnet_ids = module.vpc.private_subnet_ids
   node_instance_type = var.node_instance_type
+  vpc_id = module.vpc.vpc_id
 }
 
 module "rds" {

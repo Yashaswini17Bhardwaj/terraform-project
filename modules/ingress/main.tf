@@ -1,7 +1,13 @@
+resource "kubernetes_namespace" "staging" {
+  metadata {
+    name = "staging"
+  }
+}
+
 resource "kubernetes_ingress_v1" "demo_app" {
   metadata {
     name      = "demo-ingress"
-    namespace = kubernetes_namespace.staging  
+    namespace = kubernetes_namespace.staging.metadata[0].name
     annotations = {
       "kubernetes.io/ingress.class"            = "alb"  # Tells LB Controller to manage
       "alb.ingress.kubernetes.io/scheme"       = "internet-facing"  # Public ALB
@@ -27,10 +33,8 @@ resource "kubernetes_ingress_v1" "demo_app" {
       }
     }
   }
+
+  depends_on = [kubernetes_namespace.staging]
 }
 
-resource "kubernetes_namespace" "staging" {
-  metadata {
-    name = "staging"
-  }
-}
+
