@@ -1,0 +1,3 @@
+This project provides an Infrastructure as Code (IaC) implementation using Terraform to build a secure, scalable 3-tier application infrastructure on AWS. The setup provisions an Amazon VPC with public and private subnets, an EKS cluster for container orchestration, RDS (PostgreSQL) for the database layer, and an Application Load Balancer (ALB) for external access with SSL termination. The infrastructure is modular, reusable, and fully automated, supporting high availability, cost optimization, and production-ready security best practices.
+
+<img width="1248" height="543" alt="diagram-export-29-08-2025-18_16_50" src="https://github.com/user-attachments/assets/93969def-c2a3-4371-af5c-07ad5d84649f" />
